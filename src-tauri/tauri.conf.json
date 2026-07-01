@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Image Service",
+  "version": "0.1.0",
+  "identifier": "com.imageservice.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Image Service",
+        "width": 1240,
+        "height": 820,
+        "minWidth": 1020,
+        "minHeight": 680,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [],
+    "createUpdaterArtifacts": true,
+    "category": "Utility",
+    "shortDescription": "Offline image converter and optimizer",
+    "longDescription": "Convert, resize and compress images locally on Windows and macOS."
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc0OEIxMDc5RUY3ODMzMjEKUldRaE0zanZlUkNMZExoN1d6czRtdWNGU1NpWjdoa1BzdHJ3SU1qTEIxUDc2TFBkTytnazF6RVUK",
+      "endpoints": [
+        "https://github.com/sram0ta/image-service/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}
