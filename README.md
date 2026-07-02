@@ -61,6 +61,22 @@ npm run release:secrets
 - `TAURI_SIGNING_PRIVATE_KEY`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
+Для macOS без ошибки “приложение повреждено” нужны Apple Developer подпись и notarization. Список Apple secrets:
+
+```bash
+npm run release:apple-secrets
+```
+
+Нужны:
+
+- `APPLE_CERTIFICATE`
+- `APPLE_CERTIFICATE_PASSWORD`
+- `APPLE_SIGNING_IDENTITY`
+- `APPLE_ID`
+- `APPLE_PASSWORD`
+- `APPLE_TEAM_ID`
+- `KEYCHAIN_PASSWORD`
+
 Добавлять здесь:
 
 ```text
@@ -97,3 +113,17 @@ https://github.com/sram0ta/image-service/releases/latest/download/latest.json
 ```
 
 Если репозиторий будет называться иначе, поменяй endpoint в `src-tauri/tauri.conf.json`.
+
+## Если macOS пишет “приложение повреждено”
+
+Это Gatekeeper: приложение скачано из интернета и не прошло Apple notarization.
+
+Для текущего локального теста можно снять quarantine:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Image Service.app"
+```
+
+Если приложение еще на смонтированном `.dmg`, сначала перетащи его в `Applications`.
+
+Для публичных релизов правильное решение — добавить Apple Developer secrets выше и выпустить новый релиз. Тогда GitHub Actions подпишет и notarize macOS-сборку.
