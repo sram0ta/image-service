@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufWriter, Cursor};
 use std::path::{Path, PathBuf};
+use tauri::Emitter;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -51,6 +52,14 @@ struct ConvertRequest {
     suffix: String,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConversionProgress {
+    input_path: String,
+    percent: u8,
+    message: String,
+}
+
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 enum OutputFormat {
@@ -59,7 +68,7 @@ enum OutputFormat {
     Png,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 enum ResizeMode {
     None,
@@ -99,8 +108,26 @@ fn inspect_images(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> {
 }
 
 #[tauri::command]
-fn convert_image(request: ConvertRequest) -> Result<ConvertResult, String> {
-    convert_single_image(request).map_err(|error| error.to_string())
+async fn convert_image(
+    window: tauri::Window,
+    request: ConvertRequest,
+) -> Result<ConvertResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let input_path = request.input_path.clone();
+        convert_single_image(request, |percent, message| {
+            let _ = window.emit(
+                "conversion-progress",
+                ConversionProgress {
+                    input_path: input_path.clone(),
+                    percent,
+                    message: message.to_owned(),
+                },
+            );
+        })
+    })
+    .await
+    .map_err(|error| format!("Не удалось запустить обработку: {error}"))?
+    .map_err(|error| error.to_string())
 }
 
 fn inspect_image(path: &Path) -> ConverterResult<ImageInfo> {
@@ -152,18 +179,30 @@ fn thumbnail_data_url(path: &Path) -> Option<String> {
     ))
 }
 
-fn convert_single_image(request: ConvertRequest) -> ConverterResult<ConvertResult> {
+fn convert_single_image<F>(
+    request: ConvertRequest,
+    mut progress: F,
+) -> ConverterResult<ConvertResult>
+where
+    F: FnMut(u8, &str),
+{
+    progress(5, "Подготовка файла");
     let input_path = Path::new(&request.input_path);
     let original_size_bytes = fs::metadata(input_path)?.len();
+    progress(12, "Чтение изображения");
     let image = image::open(input_path)?;
+    progress(28, "Расчет размера");
     let image = resize_image(image, &request)?;
+    progress(45, "Подготовка результата");
     let output_path = output_path_for(&request)?;
 
     if let Some(parent) = output_path.parent() {
         fs::create_dir_all(parent)?;
     }
 
+    progress(62, "Кодирование");
     encode_image(&image, &output_path, request.format, request.quality)?;
+    progress(92, "Сохранение файла");
 
     let output_size_bytes = fs::metadata(&output_path)?.len();
     let (width, height) = image.dimensions();
@@ -173,7 +212,7 @@ fn convert_single_image(request: ConvertRequest) -> ConverterResult<ConvertResul
         ((1.0 - output_size_bytes as f64 / original_size_bytes as f64) * 100.0).round() as i64
     };
 
-    Ok(ConvertResult {
+    let result = ConvertResult {
         input_path: request.input_path,
         output_path: output_path.display().to_string(),
         original_size_bytes,
@@ -181,7 +220,11 @@ fn convert_single_image(request: ConvertRequest) -> ConverterResult<ConvertResul
         width,
         height,
         saved_percent,
-    })
+    };
+
+    progress(100, "Готово");
+
+    Ok(result)
 }
 
 fn resize_image(image: DynamicImage, request: &ConvertRequest) -> ConverterResult<DynamicImage> {

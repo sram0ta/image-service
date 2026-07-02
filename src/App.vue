@@ -28,6 +28,11 @@ const {
   totalOutputBytes,
   totalSavedPercent,
   progress,
+  conversionProgress,
+  conversionSummary,
+  elapsedTimeLabel,
+  remainingTimeLabel,
+  currentProcessingItem,
   inspect,
   pickFiles,
   pickOutputDir,
@@ -269,10 +274,26 @@ async function onDrop(event: DragEvent) {
         </section>
 
         <div v-if="isProcessing || completedCount || failedCount" class="progress-block">
-          <div class="progress-track">
-            <span :style="{ width: `${progress}%` }" />
+          <div class="progress-heading">
+            <strong>
+              {{ isProcessing ? "Конвертация" : "Последняя обработка" }}
+            </strong>
+            <span>{{ isProcessing ? conversionSummary : `${progress}%` }}</span>
           </div>
-          <p>Обработано {{ progress }}%</p>
+          <div class="progress-track">
+            <span :style="{ width: `${isProcessing ? conversionProgress : progress}%` }" />
+          </div>
+          <div class="progress-meta">
+            <p>
+              Обработано {{ isProcessing ? conversionProgress : progress }}%
+              <span v-if="currentProcessingItem">
+                · {{ currentProcessingItem.info.fileName }}
+              </span>
+            </p>
+            <p v-if="isProcessing">
+              Прошло {{ elapsedTimeLabel }} · осталось {{ remainingTimeLabel }}
+            </p>
+          </div>
         </div>
 
         <section
@@ -323,6 +344,9 @@ async function onDrop(event: DragEvent) {
                   <span>{{ formatBytes(item.info.sizeBytes) }}</span>
                   <span v-if="item.result">→ {{ formatBytes(item.result.outputSizeBytes) }}</span>
                   <span v-if="item.result">{{ fileShortName(item.result.outputPath) }}</span>
+                  <span v-if="item.status === 'processing' && item.progressMessage">
+                    {{ item.progressMessage }}
+                  </span>
                   <span v-if="item.error" class="file-error">{{ item.error }}</span>
                 </div>
               </div>
@@ -330,7 +354,9 @@ async function onDrop(event: DragEvent) {
                 <Loader2 v-if="item.status === 'processing'" class="spin" :size="16" />
                 <CheckCircle2 v-else-if="item.status === 'done'" :size="16" />
                 <X v-else-if="item.status === 'error'" :size="16" />
-                <span>{{ statusLabels[item.status] }}</span>
+                <span>
+                  {{ item.status === "processing" ? `${item.progress}%` : statusLabels[item.status] }}
+                </span>
               </div>
               <button
                 class="icon-button"

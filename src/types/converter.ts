@@ -41,6 +41,14 @@ export interface QueueItem {
   id: string;
   info: ImageInfo;
   status: "queued" | "processing" | "done" | "error";
+  progress: number;
+  progressMessage: string | null;
   result: ConvertResult | null;
   error: string | null;
+}
+
+export interface ConversionProgressEvent {
+  inputPath: string;
+  percent: number;
+  message: string;
 }

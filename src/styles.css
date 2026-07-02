@@ -452,6 +452,25 @@ button:disabled {
   gap: 8px;
 }
 
+.progress-heading,
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-heading strong {
+  color: #1e2f27;
+  font-size: 14px;
+}
+
+.progress-heading span {
+  color: #1d6a57;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .progress-track {
   height: 10px;
   overflow: hidden;
@@ -468,9 +487,16 @@ button:disabled {
 }
 
 .progress-block p {
+  overflow: hidden;
   color: #6b766f;
   font-size: 12px;
   font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-block p:last-child {
+  flex: 0 0 auto;
 }
 
 .drop-zone {
