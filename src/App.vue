@@ -287,7 +287,7 @@ onUnmounted(() => {
       <section class="main-panel">
         <header class="top-bar">
           <div>
-            <p class="eyebrow">Только локальная обработка</p>
+            <p class="eyebrow">Локальная обработка изображений</p>
             <h2>Конвертация и сжатие изображений</h2>
           </div>
           <div class="top-actions">
