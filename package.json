@@ -13,8 +13,7 @@
     "tauri:build": "node scripts/tauri.mjs build",
     "tauri:build:signed": "node scripts/build-signed.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
-    "release:secrets": "node scripts/print-updater-secrets.mjs",
-    "release:apple-secrets": "node scripts/print-apple-secrets.mjs"
+    "release:secrets": "node scripts/print-updater-secrets.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.23.0",
