@@ -12,6 +12,7 @@
     "tauri:dev": "node scripts/tauri.mjs dev",
     "tauri:build": "node scripts/tauri.mjs build",
     "tauri:build:signed": "node scripts/build-signed.mjs",
+    "release": "node scripts/release.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:secrets": "node scripts/print-updater-secrets.mjs"
   },

@@ -69,6 +69,16 @@ GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository se
 
 ## Как выпустить релиз
 
+Обычный релиз выпускается одной командой:
+
+```bash
+npm run release -- 1.0.5
+```
+
+Скрипт обновит версию, проверит frontend-сборку, сделает commit `Release v1.0.5`, поставит тег `v1.0.5` и отправит ветку с тегом в GitHub.
+
+Ручной вариант:
+
 1. Подготовить версию:
 
 ```bash

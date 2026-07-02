@@ -58,9 +58,9 @@ const isDragging = ref(false);
 let unlistenNativeDrop: UnlistenFn | null = null;
 
 const formats: Array<{ value: OutputFormat; label: string; hint: string }> = [
-  { value: "webp", label: "WebP", hint: "Лучший формат для сайта" },
-  { value: "jpeg", label: "JPEG", hint: "Фото и превью" },
-  { value: "png", label: "PNG", hint: "Без потери качества" },
+  { value: "webp", label: "WebP", hint: "Формат для сайта" },
+  { value: "jpeg", label: "JPEG", hint: "" },
+  { value: "png", label: "PNG", hint: "" },
 ];
 
 const resizeModes: Array<{ value: ResizeMode; label: string }> = [
@@ -186,7 +186,6 @@ onUnmounted(() => {
         <div class="control-group">
           <div class="control-heading">
             <span>Формат вывода</span>
-            <ChevronDown :size="16" />
           </div>
           <div class="format-grid">
             <button
