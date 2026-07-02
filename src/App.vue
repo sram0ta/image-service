@@ -73,10 +73,10 @@ const resizeModes: Array<{ value: ResizeMode; label: string }> = [
 const hasItems = computed(() => items.value.length > 0);
 const canConvert = computed(() => hasItems.value && !isProcessing.value);
 const qualityLabel = computed(() => {
-  if (options.value.quality >= 90) return "Максимум";
-  if (options.value.quality >= 75) return "Баланс";
-  if (options.value.quality >= 55) return "Компактно";
-  return "Сильно";
+  if (options.value.quality >= 90) return "Отличное";
+  if (options.value.quality >= 75) return "Хорошее";
+  if (options.value.quality >= 55) return "Удовлетворительное";
+  return "Искажения и пиксели";
 });
 const outputLabel = computed(() => options.value.outputDir ?? "Сохранять рядом с оригиналом");
 const statusLabels = {
@@ -217,9 +217,9 @@ onUnmounted(() => {
             step="1"
           />
           <div class="range-meta">
-            <span>Меньше</span>
+            <span>Хуже</span>
             <strong>{{ qualityLabel }}</strong>
-            <span>Чище</span>
+            <span>Лучше</span>
           </div>
         </div>
 
