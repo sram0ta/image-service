@@ -1,14 +1,14 @@
 {
   "name": "image-service",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build --base=./",
     "preview": "vite preview",
     "tauri": "node scripts/tauri.mjs",
-    "tauri:ci": "tauri",
+    "tauri:ci": "node scripts/tauri.mjs",
     "tauri:dev": "node scripts/tauri.mjs dev",
     "tauri:build": "node scripts/tauri.mjs build",
     "tauri:build:signed": "node scripts/build-signed.mjs",
