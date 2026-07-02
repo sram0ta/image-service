@@ -181,14 +181,25 @@ h3 {
 }
 
 .update-card button {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  width: 38px;
+  gap: 7px;
+  min-width: 112px;
   height: 38px;
+  padding: 0 12px;
   border-radius: 8px;
   color: #1d5e4f;
   background: #ffffff;
+}
+
+.update-card button span {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: none;
 }
 
 .update-card p {

@@ -49,6 +49,7 @@ const {
   status: updaterStatus,
   progress: updaterProgress,
   label: updaterLabel,
+  actionLabel: updaterActionLabel,
   currentVersionLabel,
   errorMessage: updaterError,
   handleUpdaterClick,
@@ -176,6 +177,7 @@ onUnmounted(() => {
           >
             <Loader2 v-if="updaterStatus === 'checking' || updaterStatus === 'downloading'" class="spin" :size="17" />
             <RefreshCw v-else :size="17" />
+            <span>{{ updaterActionLabel }}</span>
           </button>
           <div v-if="updaterStatus === 'downloading'" class="update-progress">
             <span :style="{ width: `${updaterProgress}%` }" />

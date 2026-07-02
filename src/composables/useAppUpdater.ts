@@ -1,4 +1,4 @@
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, shallowRef, ref } from "vue";
 import { getVersion } from "@tauri-apps/api/app";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
@@ -7,7 +7,7 @@ type UpdaterStatus = "idle" | "checking" | "available" | "none" | "downloading" 
 
 export function useAppUpdater() {
   const status = ref<UpdaterStatus>("idle");
-  const update = ref<Update | null>(null);
+  const update = shallowRef<Update | null>(null);
   const downloadedBytes = ref(0);
   const totalBytes = ref(0);
   const currentVersion = ref<string | null>(null);
@@ -40,6 +40,20 @@ export function useAppUpdater() {
   const canCheck = computed(() => status.value === "idle" || status.value === "none" || status.value === "error");
   const canInstall = computed(() => status.value === "available");
   const canRelaunch = computed(() => status.value === "ready");
+  const actionLabel = computed(() => {
+    switch (status.value) {
+      case "checking":
+        return "Проверяем";
+      case "available":
+        return "Обновить";
+      case "downloading":
+        return "Установка";
+      case "ready":
+        return "Перезапустить";
+      default:
+        return "Проверить";
+    }
+  });
   const currentVersionLabel = computed(() =>
     currentVersion.value ? `Текущая версия ${currentVersion.value}` : "Текущая версия загружается",
   );
@@ -70,7 +84,8 @@ export function useAppUpdater() {
   }
 
   async function installUpdate() {
-    if (!update.value) return;
+    const availableUpdate = update.value;
+    if (!availableUpdate) return;
 
     status.value = "downloading";
     errorMessage.value = null;
@@ -78,7 +93,7 @@ export function useAppUpdater() {
     totalBytes.value = 0;
 
     try {
-      await update.value.downloadAndInstall((event) => {
+      await availableUpdate.downloadAndInstall((event) => {
         if (event.event === "Started") {
           totalBytes.value = event.data.contentLength ?? 0;
         }
@@ -89,6 +104,7 @@ export function useAppUpdater() {
       });
 
       status.value = "ready";
+      await relaunchApp();
     } catch (error) {
       status.value = "error";
       errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -125,6 +141,7 @@ export function useAppUpdater() {
     update,
     progress,
     label,
+    actionLabel,
     currentVersionLabel,
     errorMessage,
     handleUpdaterClick,
