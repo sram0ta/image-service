@@ -12,7 +12,9 @@ import {
   Trash2,
   X,
 } from "@lucide/vue";
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { getCurrentWindow, type DragDropEvent } from "@tauri-apps/api/window";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import { useAppUpdater } from "./composables/useAppUpdater";
 import { useImageConverter } from "./composables/useImageConverter";
 import type { OutputFormat, ResizeMode } from "./types/converter";
@@ -53,6 +55,7 @@ const {
 } = useAppUpdater();
 
 const isDragging = ref(false);
+let unlistenNativeDrop: UnlistenFn | null = null;
 
 const formats: Array<{ value: OutputFormat; label: string; hint: string }> = [
   { value: "webp", label: "WebP", hint: "Лучший формат для сайта" },
@@ -75,13 +78,14 @@ const qualityLabel = computed(() => {
   if (options.value.quality >= 55) return "Компактно";
   return "Сильно";
 });
-const outputLabel = computed(() => options.value.outputDir ?? "Сохранить рядом с оригиналами");
+const outputLabel = computed(() => options.value.outputDir ?? "Сохранять рядом с оригиналом");
 const statusLabels = {
   queued: "В очереди",
   processing: "Обработка",
   done: "Готово",
   error: "Ошибка",
 };
+const supportedImageExtensions = new Set(["png", "jpg", "jpeg", "webp"]);
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B";
@@ -94,6 +98,13 @@ function fileShortName(path: string) {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
+function imagePathsOnly(paths: string[]) {
+  return paths.filter((path) => {
+    const extension = path.split(".").pop()?.toLowerCase();
+    return extension ? supportedImageExtensions.has(extension) : false;
+  });
+}
+
 async function onDrop(event: DragEvent) {
   isDragging.value = false;
   const paths = Array.from(event.dataTransfer?.files ?? [])
@@ -103,10 +114,39 @@ async function onDrop(event: DragEvent) {
     })
     .filter((path): path is string => Boolean(path));
 
-  if (paths.length > 0) {
-    await inspect(paths);
+  const imagePaths = imagePathsOnly(paths);
+  if (imagePaths.length > 0) {
+    await inspect(imagePaths);
   }
 }
+
+async function handleNativeDrop(event: { payload: DragDropEvent }) {
+  if (event.payload.type === "enter" || event.payload.type === "over") {
+    isDragging.value = true;
+    return;
+  }
+
+  if (event.payload.type === "leave") {
+    isDragging.value = false;
+    return;
+  }
+
+  isDragging.value = false;
+  const imagePaths = imagePathsOnly(event.payload.paths);
+  if (imagePaths.length > 0) {
+    await inspect(imagePaths);
+  }
+}
+
+onMounted(async () => {
+  unlistenNativeDrop = await getCurrentWindow().onDragDropEvent((event) => {
+    void handleNativeDrop(event);
+  });
+});
+
+onUnmounted(() => {
+  unlistenNativeDrop?.();
+});
 </script>
 
 <template>
