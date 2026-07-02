@@ -210,6 +210,16 @@ async function onDrop(event: DragEvent) {
 
         <div class="control-group">
           <div class="control-heading">
+            <span>Производительность</span>
+          </div>
+          <label class="toggle-line">
+            <input v-model="options.lowResourceMode" type="checkbox" />
+            <span>Экономный режим</span>
+          </label>
+        </div>
+
+        <div class="control-group">
+          <div class="control-heading">
             <span>Имена файлов</span>
           </div>
           <label class="toggle-line">

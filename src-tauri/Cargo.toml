@@ -1,6 +1,6 @@
 [package]
 name = "image_service"
-version = "1.0.3"
+version = "1.0.4"
 description = "Offline image converter and optimizer"
 authors = ["Image Service"]
 edition = "2021"

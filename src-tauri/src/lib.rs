@@ -10,6 +10,9 @@ use std::path::{Path, PathBuf};
 use tauri::Emitter;
 use thiserror::Error;
 
+const MAX_PREVIEW_FILE_BYTES: u64 = 20 * 1024 * 1024;
+const MAX_PREVIEW_PIXELS: u64 = 20_000_000;
+
 #[derive(Debug, Error)]
 enum ConverterError {
     #[error("Файл не удалось прочитать как изображение: {0}")]
@@ -48,6 +51,7 @@ struct ConvertRequest {
     resize_mode: ResizeMode,
     resize_width: Option<u32>,
     resize_height: Option<u32>,
+    low_resource_mode: bool,
     preserve_name: bool,
     suffix: String,
 }
@@ -133,6 +137,7 @@ async fn convert_image(
 fn inspect_image(path: &Path) -> ConverterResult<ImageInfo> {
     let (width, height) = image::image_dimensions(path)?;
     let metadata = fs::metadata(path)?;
+    let size_bytes = metadata.len();
     let file_name = path
         .file_name()
         .and_then(|name| name.to_str())
@@ -150,12 +155,17 @@ fn inspect_image(path: &Path) -> ConverterResult<ImageInfo> {
         extension,
         width,
         height,
-        size_bytes: metadata.len(),
-        preview_data_url: thumbnail_data_url(path),
+        size_bytes,
+        preview_data_url: thumbnail_data_url(path, width, height, size_bytes),
     })
 }
 
-fn thumbnail_data_url(path: &Path) -> Option<String> {
+fn thumbnail_data_url(path: &Path, width: u32, height: u32, size_bytes: u64) -> Option<String> {
+    let pixel_count = u64::from(width) * u64::from(height);
+    if size_bytes > MAX_PREVIEW_FILE_BYTES || pixel_count > MAX_PREVIEW_PIXELS {
+        return None;
+    }
+
     let image = image::open(path).ok()?;
     let thumbnail = image.thumbnail(96, 96).to_rgba8();
     let mut bytes = Vec::new();
@@ -201,7 +211,13 @@ where
     }
 
     progress(62, "Кодирование");
-    encode_image(&image, &output_path, request.format, request.quality)?;
+    encode_image(
+        &image,
+        &output_path,
+        request.format,
+        request.quality,
+        request.low_resource_mode,
+    )?;
     progress(92, "Сохранение файла");
 
     let output_size_bytes = fs::metadata(&output_path)?.len();
@@ -236,14 +252,14 @@ fn resize_image(image: DynamicImage, request: &ConvertRequest) -> ConverterResul
                 .resize_width
                 .ok_or(ConverterError::InvalidResizeDimensions)?;
             let target_height = scaled_dimension(height, width, target_width)?;
-            image.resize(target_width, target_height, ResizeFilter::Lanczos3)
+            image.resize(target_width, target_height, resize_filter_for(request))
         }
         ResizeMode::Height => {
             let target_height = request
                 .resize_height
                 .ok_or(ConverterError::InvalidResizeDimensions)?;
             let target_width = scaled_dimension(width, height, target_height)?;
-            image.resize(target_width, target_height, ResizeFilter::Lanczos3)
+            image.resize(target_width, target_height, resize_filter_for(request))
         }
         ResizeMode::Fit => {
             let target_width = request
@@ -255,11 +271,19 @@ fn resize_image(image: DynamicImage, request: &ConvertRequest) -> ConverterResul
             if target_width == 0 || target_height == 0 {
                 return Err(ConverterError::InvalidResizeDimensions);
             }
-            image.resize(target_width, target_height, ResizeFilter::Lanczos3)
+            image.resize(target_width, target_height, resize_filter_for(request))
         }
     };
 
     Ok(resized)
+}
+
+fn resize_filter_for(request: &ConvertRequest) -> ResizeFilter {
+    if request.low_resource_mode {
+        ResizeFilter::Triangle
+    } else {
+        ResizeFilter::Lanczos3
+    }
 }
 
 fn scaled_dimension(source: u32, source_base: u32, target_base: u32) -> ConverterResult<u32> {
@@ -333,11 +357,12 @@ fn encode_image(
     output_path: &Path,
     format: OutputFormat,
     quality: u8,
+    low_resource_mode: bool,
 ) -> ConverterResult<()> {
     match format {
         OutputFormat::Webp => encode_webp(image, output_path, quality),
         OutputFormat::Jpeg => encode_jpeg(image, output_path, quality),
-        OutputFormat::Png => encode_png(image, output_path, quality),
+        OutputFormat::Png => encode_png(image, output_path, quality, low_resource_mode),
     }
 }
 
@@ -359,13 +384,22 @@ fn encode_jpeg(image: &DynamicImage, output_path: &Path, quality: u8) -> Convert
     Ok(())
 }
 
-fn encode_png(image: &DynamicImage, output_path: &Path, quality: u8) -> ConverterResult<()> {
+fn encode_png(
+    image: &DynamicImage,
+    output_path: &Path,
+    quality: u8,
+    low_resource_mode: bool,
+) -> ConverterResult<()> {
     let file = fs::File::create(output_path)?;
     let writer = BufWriter::new(file);
-    let compression = match quality {
-        0..=55 => CompressionType::Best,
-        56..=85 => CompressionType::Default,
-        _ => CompressionType::Fast,
+    let compression = if low_resource_mode {
+        CompressionType::Fast
+    } else {
+        match quality {
+            0..=55 => CompressionType::Best,
+            56..=85 => CompressionType::Default,
+            _ => CompressionType::Fast,
+        }
     };
     let encoder = PngEncoder::new_with_quality(writer, compression, FilterType::Adaptive);
     let rgba = image.to_rgba8();

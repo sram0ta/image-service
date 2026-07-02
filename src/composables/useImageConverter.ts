@@ -61,6 +61,7 @@ export function useImageConverter() {
     resizeMode: "none",
     resizeWidth: 1920,
     resizeHeight: 1080,
+    lowResourceMode: true,
     preserveName: true,
     suffix: "-optimized",
   });

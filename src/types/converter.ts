@@ -19,6 +19,7 @@ export interface ConvertOptions {
   resizeMode: ResizeMode;
   resizeWidth: number | null;
   resizeHeight: number | null;
+  lowResourceMode: boolean;
   preserveName: boolean;
   suffix: string;
 }
