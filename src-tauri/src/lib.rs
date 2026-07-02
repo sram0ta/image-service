@@ -1,10 +1,11 @@
+use base64::Engine;
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::imageops::FilterType as ResizeFilter;
 use image::{DynamicImage, GenericImageView, ImageEncoder};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::BufWriter;
+use std::io::{BufWriter, Cursor};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -33,6 +34,7 @@ struct ImageInfo {
     width: u32,
     height: u32,
     size_bytes: u64,
+    preview_data_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -122,7 +124,32 @@ fn inspect_image(path: &Path) -> ConverterResult<ImageInfo> {
         width,
         height,
         size_bytes: metadata.len(),
+        preview_data_url: thumbnail_data_url(path),
     })
+}
+
+fn thumbnail_data_url(path: &Path) -> Option<String> {
+    let image = image::open(path).ok()?;
+    let thumbnail = image.thumbnail(96, 96).to_rgba8();
+    let mut bytes = Vec::new();
+    {
+        let writer = Cursor::new(&mut bytes);
+        let encoder =
+            PngEncoder::new_with_quality(writer, CompressionType::Fast, FilterType::Adaptive);
+        encoder
+            .write_image(
+                thumbnail.as_raw(),
+                thumbnail.width(),
+                thumbnail.height(),
+                image::ExtendedColorType::Rgba8,
+            )
+            .ok()?;
+    }
+
+    Some(format!(
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
 }
 
 fn convert_single_image(request: ConvertRequest) -> ConverterResult<ConvertResult> {
@@ -340,5 +367,29 @@ mod tests {
         let metadata = fs::metadata(&output_path).expect("webp output should exist");
         assert!(metadata.len() > 0);
         let _ = fs::remove_file(output_path);
+    }
+
+    #[test]
+    fn creates_thumbnail_data_url_for_queue_preview() {
+        let image = DynamicImage::ImageLuma8(GrayImage::from_pixel(12, 12, Luma([120])));
+        let input_path = std::env::temp_dir().join(format!(
+            "image-service-preview-test-{}.png",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system time should be valid")
+                .as_nanos()
+        ));
+
+        image
+            .save_with_format(&input_path, image::ImageFormat::Png)
+            .expect("test png should be saved");
+
+        let info = inspect_image(&input_path).expect("test image should be inspected");
+        assert!(info
+            .preview_data_url
+            .expect("preview should exist")
+            .starts_with("data:image/png;base64,"));
+
+        let _ = fs::remove_file(input_path);
     }
 }

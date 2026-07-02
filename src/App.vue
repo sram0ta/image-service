@@ -306,7 +306,13 @@ async function onDrop(event: DragEvent) {
           <div class="queue-list">
             <article v-for="item in items" :key="item.id" class="queue-item">
               <div class="file-badge">
-                {{ item.info.extension.toUpperCase() }}
+                <img
+                  v-if="item.info.previewDataUrl"
+                  :src="item.info.previewDataUrl"
+                  :alt="`Превью ${item.info.fileName}`"
+                  loading="lazy"
+                />
+                <span>{{ item.info.extension.toUpperCase() }}</span>
               </div>
               <div class="file-main">
                 <div class="file-title">

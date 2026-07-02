@@ -9,6 +9,7 @@ export interface ImageInfo {
   width: number;
   height: number;
   sizeBytes: number;
+  previewDataUrl: string | null;
 }
 
 export interface ConvertOptions {
