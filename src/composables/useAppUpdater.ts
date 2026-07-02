@@ -1,4 +1,5 @@
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { getVersion } from "@tauri-apps/api/app";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 
@@ -9,6 +10,7 @@ export function useAppUpdater() {
   const update = ref<Update | null>(null);
   const downloadedBytes = ref(0);
   const totalBytes = ref(0);
+  const currentVersion = ref<string | null>(null);
   const errorMessage = ref<string | null>(null);
 
   const progress = computed(() => {
@@ -38,8 +40,21 @@ export function useAppUpdater() {
   const canCheck = computed(() => status.value === "idle" || status.value === "none" || status.value === "error");
   const canInstall = computed(() => status.value === "available");
   const canRelaunch = computed(() => status.value === "ready");
+  const currentVersionLabel = computed(() =>
+    currentVersion.value ? `Текущая версия ${currentVersion.value}` : "Текущая версия загружается",
+  );
+
+  async function loadCurrentVersion() {
+    try {
+      currentVersion.value = await getVersion();
+    } catch {
+      currentVersion.value = null;
+    }
+  }
 
   async function checkForUpdates() {
+    if (status.value === "checking" || status.value === "downloading") return;
+
     status.value = "checking";
     errorMessage.value = null;
     downloadedBytes.value = 0;
@@ -100,11 +115,17 @@ export function useAppUpdater() {
     }
   }
 
+  onMounted(() => {
+    void loadCurrentVersion();
+    void checkForUpdates();
+  });
+
   return {
     status,
     update,
     progress,
     label,
+    currentVersionLabel,
     errorMessage,
     handleUpdaterClick,
   };

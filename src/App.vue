@@ -47,6 +47,7 @@ const {
   status: updaterStatus,
   progress: updaterProgress,
   label: updaterLabel,
+  currentVersionLabel,
   errorMessage: updaterError,
   handleUpdaterClick,
 } = useAppUpdater();
@@ -126,6 +127,7 @@ async function onDrop(event: DragEvent) {
           <div>
             <span>Обновления</span>
             <strong>{{ updaterLabel }}</strong>
+            <small>{{ currentVersionLabel }}</small>
           </div>
           <button
             type="button"
